@@ -2,28 +2,259 @@
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Biblioteca de checklists de jogos</title>
 <style>
-:root{--bg:#eef1f3;--s:#fff;--ink:#1b2630;--mu:#5d6b76;--ln:#d3dae0;--ac:#1f6f78;--ai:#fff;--bad:#a33}
-@media(prefers-color-scheme:dark){:root{--bg:#131a1f;--s:#1b242b;--ink:#e4e9ec;--mu:#93a1ab;--ln:#2c3841;--ac:#6fb7be;--ai:#0f1a1d;--bad:#f0928f}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-main{max-width:980px;margin:0 auto;padding:16px 14px 60px}h1{font-size:1.6rem;margin:0}h2{font-size:1.15rem;margin:0}
-button,input,select,textarea{font:inherit;color:var(--ink);background:var(--s);border:1px solid var(--ln);border-radius:8px;padding:7px 12px}
-button{cursor:pointer}button.p{background:var(--ac);color:var(--ai);border-color:var(--ac)}button.d,.bad{color:var(--bad)}
-:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>input[type=search]{flex:1 1 170px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
-.card{background:var(--s);border:1px solid var(--ln);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.cv{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,var(--ac),#345);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700}
-.cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%}
-.cb{padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}.cb .row{margin:4px 0 0}.cb button{padding:4px 9px;font-size:.85rem}
-.bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
-.mu{color:var(--mu);font-size:.85rem}
-details{background:var(--s);border:1px solid var(--ln);border-radius:10px;margin-bottom:8px}summary{cursor:pointer;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;gap:10px}
-.q{display:flex;gap:8px;align-items:flex-start;padding:5px 12px}.q label{flex:1;display:flex;gap:10px;cursor:pointer}.q input{width:20px;height:20px;flex:none;margin-top:2px}
-.q.ok .n{color:var(--mu);text-decoration:line-through}.q.lost .n{color:var(--bad)}.q button{padding:0 8px;font-size:.8rem}
-.modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:12px;z-index:9}
-.mb{background:var(--s);border-radius:12px;max-width:660px;width:100%;max-height:92vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
-textarea{width:100%;min-height:140px;font:.82rem/1.4 ui-monospace,Consolas,monospace}
-#msg{display:none;background:var(--s);border-left:4px solid var(--bad);padding:8px 12px;margin:10px 0}
+:root{
+  --bg:#101418;
+  --s:#18222d;
+  --card-bg:#1e2a38;
+  --card-hover:#243447;
+  --ink:#f3f6f8;
+  --mu:#8a9dae;
+  --ln:#2d3e50;
+  --ac:#2a97a5;
+  --ac-bright:#3bc4d5;
+  --ai:#ffffff;
+  --bad:#e85a5a;
+  --shadow:0 8px 20px rgba(0,0,0,0.4);
+}
+@media(prefers-color-scheme:light){
+  :root{
+    --bg:#101418;
+    --s:#18222d;
+    --card-bg:#1e2a38;
+    --card-hover:#243447;
+    --ink:#f3f6f8;
+    --mu:#8a9dae;
+    --ln:#2d3e50;
+    --ac:#2a97a5;
+    --ac-bright:#3bc4d5;
+    --ai:#ffffff;
+    --bad:#e85a5a;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0.2px}
+main{max-width:1200px;margin:0 auto;padding:24px 16px 60px}
+h1{font-size:1.5rem;font-weight:700;margin:0 0 4px;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+h2{font-size:0.95rem;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
+
+button,input,select,textarea{font:inherit;color:var(--ink);background:var(--s);border:1px solid var(--ln);border-radius:6px;padding:6px 10px;transition:all 0.15s ease}
+button{cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:4px}
+button:hover{border-color:var(--ac);color:#fff;background:#223040}
+button.p{background:var(--ac);color:var(--ai);border-color:var(--ac)}
+button.p:hover{background:var(--ac-bright);border-color:var(--ac-bright)}
+button.d,.bad{color:var(--bad)}
+button.d:hover{background:rgba(232,90,90,0.15);border-color:var(--bad)}
+:focus-visible{outline:2px solid var(--ac-bright);outline-offset:2px}
+
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.row>input[type=search]{flex:1 1 180px;background:#141d26}
+
+/* GRADE DA BIBLIOTECA STEAM */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+  gap:20px;
+  margin-top:16px;
+}
+
+/* CARDS */
+.card{
+  background:var(--card-bg);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:8px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  box-shadow:var(--shadow);
+  transition:transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+.card:hover{
+  transform:translateY(-4px);
+  box-shadow:0 12px 28px rgba(0,0,0,0.6);
+  border-color:rgba(42,151,165,0.4);
+  background:var(--card-hover);
+}
+
+/* CAPA VERTICAL STEAM (2:3) */
+.cv{
+  position:relative;
+  width:100%;
+  aspect-ratio:2/3;
+  background:linear-gradient(145deg, #1f2d3a, #101720);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:rgba(255,255,255,0.4);
+  font-size:3rem;
+  font-weight:800;
+  overflow:hidden;
+}
+.cv img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 25%;
+  transition:transform 0.3s ease;
+}
+.card:hover .cv img{
+  transform:scale(1.04);
+}
+
+/* CONTEÚDO DO CARD */
+.cb{
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  flex:1;
+}
+.cb h2{
+  margin-bottom:2px;
+}
+.cb .row{
+  margin:6px 0 0;
+  gap:4px;
+}
+.cb button{
+  padding:3px 7px;
+  font-size:0.75rem;
+  border-radius:4px;
+  flex:1;
+}
+
+/* BARRAS DE PROGRESSO COMPACTAS */
+.bar{
+  height:5px;
+  background:#121a22;
+  border-radius:3px;
+  overflow:hidden;
+  margin:2px 0 4px;
+}
+.bar i{
+  display:block;
+  height:100%;
+  background:linear-gradient(90deg, var(--ac), var(--ac-bright));
+  border-radius:3px;
+  transition:width 0.3s ease;
+}
+
+.mu{
+  color:var(--mu);
+  font-size:0.78rem;
+  line-height:1.2;
+}
+
+/* CHECKLIST & DETALHES */
+details{
+  background:var(--card-bg);
+  border:1px solid var(--ln);
+  border-radius:8px;
+  margin-bottom:8px;
+  overflow:hidden;
+}
+summary{
+  cursor:pointer;
+  padding:10px 14px;
+  font-weight:600;
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  background:rgba(0,0,0,0.15);
+  user-select:none;
+}
+summary:hover{
+  background:rgba(255,255,255,0.03);
+}
+.q{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding:6px 12px;
+  border-top:1px solid rgba(255,255,255,0.03);
+}
+.q:hover{
+  background:rgba(255,255,255,0.02);
+}
+.q label{
+  flex:1;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  cursor:pointer;
+}
+.q input{
+  width:16px;
+  height:16px;
+  flex:none;
+  margin:0;
+  accent-color:var(--ac);
+}
+.q.ok .n{
+  color:var(--mu);
+  text-decoration:line-through;
+  opacity:0.7;
+}
+.q.lost .n{
+  color:var(--bad);
+}
+.q button{
+  padding:2px 6px;
+  font-size:0.75rem;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(4px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:99;
+}
+.mb{
+  background:var(--s);
+  border:1px solid var(--ln);
+  border-radius:12px;
+  max-width:620px;
+  width:100%;
+  max-height:90vh;
+  overflow:auto;
+  padding:18px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-shadow:0 16px 32px rgba(0,0,0,0.6);
+}
+textarea{
+  width:100%;
+  min-height:140px;
+  font:0.8rem/1.4 ui-monospace,Consolas,monospace;
+  background:#101720;
+}
+#msg{
+  display:none;
+  background:var(--s);
+  border-left:4px solid var(--bad);
+  padding:10px 14px;
+  margin:10px 0;
+  border-radius:0 6px 6px 0;
+}
+
+@media(max-width:480px){
+  .grid{
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:12px;
+  }
+  .cb button{
+    padding:3px 4px;
+    font-size:0.7rem;
+  }
+}
 </style></head><body><main>
 <div id="msg" role="alert"></div><div id="app"></div><p id="st" class="mu"></p></main>
 <script>
@@ -140,10 +371,10 @@ function lib(){const L=Object.values(S.games).map(g=>({g,s:stats(g,S.progress[g.
  L.sort((a,b)=>V.o=="p"?pct(b.s.all[0],b.s.all[1])-pct(a.s.all[0],a.s.all[1]):a.g.game.title.localeCompare(b.g.game.title,"pt"));
  const card=({g,s})=>{const t=g.game.title,id=g.game.id,cv=h("div",{className:"cv"},h("span",null,t[0]));
   const cu=S.covers[id]||g.game.cover||"";if(/^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/.test(cu)){const im=h("img",{alt:"",src:cu,loading:"lazy"});im.onerror=()=>im.remove();cv.append(im)}
-  return h("div",{className:"card"},cv,h("div",{className:"cb"},h("h2",null,t),
+  return h("div",{className:"card"},cv,h("div",{className:"cb"},h("h2",{title:t},t),
    h("div",{className:"mu"},`Campanha: ${pct(s.main[0],s.main[1])}% (${s.main[0]}/${s.main[1]})`),bar(pct(s.main[0],s.main[1])),
-   h("div",{className:"mu"},`Todas: ${pct(s.all[0],s.all[1])}% (${s.all[0]}/${s.all[1]})`),bar(pct(s.all[0],s.all[1])),
-   h("div",{className:"mu"},`${s.all[0]} concluídas · ${s.all[1]-s.all[0]-s.all[2]} restantes · ${s.all[2]} perdidas`),
+   h("div",{className:"mu"},`Total: ${pct(s.all[0],s.all[1])}% (${s.all[0]}/${s.all[1]})`),bar(pct(s.all[0],s.all[1])),
+   h("div",{className:"mu"},`${s.all[0]} ok · ${s.all[1]-s.all[0]-s.all[2]} resta · ${s.all[2]} perd.`),
    h("div",{className:"row"},h("button",{className:"p",textContent:"Abrir",onclick:()=>{V.g=id;V.gq=V.c=V.s="";render()}}),
     h("button",{textContent:"Base",title:"Exportar base de missões",onclick:()=>dl(id+".base.json",g)}),
     h("button",{textContent:"Progresso",title:"Exportar progresso",onclick:()=>dl(id+".progresso.json",{format:"jl-progress",version:1,gameId:id,exportedAt:new Date().toISOString(),states:S.progress[id]||{}})}),
