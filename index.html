@@ -10,9 +10,9 @@ button,input,select,textarea{font:inherit;color:var(--ink);background:var(--s);b
 button{cursor:pointer}button.p{background:var(--ac);color:var(--ai);border-color:var(--ac)}button.d,.bad{color:var(--bad)}
 :focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>input[type=search]{flex:1 1 170px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
 .card{background:var(--s);border:1px solid var(--ln);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.cv{position:relative;height:130px;background:linear-gradient(135deg,var(--ac),#345);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700}
+.cv{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,var(--ac),#345);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700}
 .cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%}
 .cb{padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}.cb .row{margin:4px 0 0}.cb button{padding:4px 9px;font-size:.85rem}
 .bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
@@ -126,7 +126,7 @@ function cover(g){const id=g.game.id,u=h("input",{placeholder:"ou cole o link (h
  const x=dlg("Capa de "+g.game.title,h("p",{className:"mu"},"Escolha uma imagem do aparelho (fica guardada no app e funciona offline) ou use um link."),f,u,
   h("div",{className:"row"},h("button",{className:"p",textContent:"Usar link",onclick:()=>{const v=u.value.trim();/^https?:\/\//.test(v)?ok(v):warn("Cole um link que comece com https://")}}),h("button",{textContent:"Remover capa",onclick:()=>ok("")})));
  f.onchange=()=>{const fl=f.files[0];if(!fl)return;const im=new Image(),url=URL.createObjectURL(fl);
-  im.onload=()=>{const c=document.createElement("canvas"),r=Math.min(1,360/im.width);c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL("image/jpeg",.8))};
+  im.onload=()=>{const c=document.createElement("canvas"),r=Math.min(1,640/im.width);c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL("image/jpeg",.8))};
   im.onerror=()=>warn("Não consegui ler essa imagem.");im.src=url}}
 function names(g){const hf=h("input",{type:"file",accept:".html,.htm"});
  imp("Nomes em português — "+g.game.title,[h("p",{className:"mu"},"Escolha o arquivo HTML antigo do checklist (ele só é lido como texto). Muda apenas o nome exibido; o progresso não é tocado."),hf],async()=>{
