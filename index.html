@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Biblioteca de checklists de jogos</title>
+<style>
+:root{--bg:#eef1f3;--s:#fff;--ink:#1b2630;--mu:#5d6b76;--ln:#d3dae0;--ac:#1f6f78;--ai:#fff;--bad:#a33}
+@media(prefers-color-scheme:dark){:root{--bg:#131a1f;--s:#1b242b;--ink:#e4e9ec;--mu:#93a1ab;--ln:#2c3841;--ac:#6fb7be;--ai:#0f1a1d;--bad:#f0928f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px 14px 60px}h1{font-size:1.6rem;margin:0}h2{font-size:1.15rem;margin:0}
+button,input,select,textarea{font:inherit;color:var(--ink);background:var(--s);border:1px solid var(--ln);border-radius:8px;padding:7px 12px}
+button{cursor:pointer}button.p{background:var(--ac);color:var(--ai);border-color:var(--ac)}button.d,.bad{color:var(--bad)}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>input[type=search]{flex:1 1 170px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.card{background:var(--s);border:1px solid var(--ln);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.cv{position:relative;height:130px;background:linear-gradient(135deg,var(--ac),#345);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700}
+.cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%}
+.cb{padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1}.cb .row{margin:4px 0 0}.cb button{padding:4px 9px;font-size:.85rem}
+.bar{height:8px;background:var(--ln);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.mu{color:var(--mu);font-size:.85rem}
+details{background:var(--s);border:1px solid var(--ln);border-radius:10px;margin-bottom:8px}summary{cursor:pointer;padding:10px 14px;font-weight:700;display:flex;justify-content:space-between;gap:10px}
+.q{display:flex;gap:8px;align-items:flex-start;padding:5px 12px}.q label{flex:1;display:flex;gap:10px;cursor:pointer}.q input{width:20px;height:20px;flex:none;margin-top:2px}
+.q.ok .n{color:var(--mu);text-decoration:line-through}.q.lost .n{color:var(--bad)}.q button{padding:0 8px;font-size:.8rem}
+.modal{position:fixed;inset:0;background:#0009;display:flex;align-items:center;justify-content:center;padding:12px;z-index:9}
+.mb{background:var(--s);border-radius:12px;max-width:660px;width:100%;max-height:92vh;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+textarea{width:100%;min-height:140px;font:.82rem/1.4 ui-monospace,Consolas,monospace}
+#msg{display:none;background:var(--s);border-left:4px solid var(--bad);padding:8px 12px;margin:10px 0}
+</style></head><body><main>
+<div id="msg" role="alert"></div><div id="app"></div><p id="st" class="mu"></p></main>
+<script>
+/*CORE*/
+const norm=s=>String(s).replace(/[’‘]/g,"'").replace(/[–—]/g,"-").replace(/…/g,"...").toLowerCase().trim();
+const slug=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60);
+const pct=(a,b)=>b?Math.round(a/b*1000)/10:0;
+function stats(g,pr){const s={main:[0,0,0],all:[0,0,0],cat:{}};
+ for(const q of g.quests){const st=pr[q.id]||0,c=s.cat[q.cat]||(s.cat[q.cat]=[0,0,0]);
+  for(const a of [s.all,c,...(q.main?[s.main]:[])]){a[1]++;if(st==1)a[0]++;if(st==2)a[2]++}}
+ return s}
+function validBase(b){const e=[];
+ if(!b||b.format!=="jl-base"||b.version!==1)return["Formato inválido: esperado jl-base, versão 1."];
+ const g=b.game;if(!g||!/^[a-z0-9-]{2,60}$/.test(g.id||"")||!g.title)e.push("game.id (a-z, 0-9, -) e game.title são obrigatórios.");
+ if(!b.cats||typeof b.cats!=="object")e.push("cats ausente.");
+ if(!Array.isArray(b.quests)||!b.quests.length)return e.concat("quests vazio.");
+ const ids=new Set();b.quests.forEach((q,i)=>{const w="Missão "+(i+1)+": ";
+  if(!q||typeof q.id!=="string"||!q.id||q.id.length>120)e.push(w+"id inválido.");else if(ids.has(q.id))e.push(w+"id duplicado "+q.id);else ids.add(q.id);
+  if(!q||typeof q.name!=="string"||!q.name)e.push(w+"name ausente.");
+  if(!q||!b.cats||!(q.cat in b.cats))e.push(w+"cat desconhecida.")});
+ return e.slice(0,15)}
+const TB="Tradição dos Bruxos: ";
+function ptMap(html){const m=new Map([["Viper School Gear",TB+"Equipamento da Escola da Víbora"]]);
+ [["Grifo","Griffin",4],["Gato","Cat",4],["Urso","Bear",4],["Lobo","Wolf",6]].forEach(([p,e,n])=>{m.set(e+" School Gear",TB+"Equipamento da Escola do "+p);
+  for(let i=1;i<=n;i++)m.set(`${e} School Gear Upgrade Diagrams – Part ${i}`,TB+(p=="Grifo"&&i==1?"Diagramas da Escola do Grifo - Parte 1":`Diagrama de Melhorias do Equipamento da Escola do ${p} - Parte ${i}`));
+  if(p=="Lobo")m.set("Forgotten Wolf School Gear Diagrams",TB+"Diagramas Esquecidos da Escola do Lobo")});
+ if(html)for(const x of html.matchAll(/"([^"=\n]+)=([^"\n]+)"/g))if(!m.has(x[1]))m.set(x[1],x[2]);
+ return m}
+function legacyBase(txt,html){
+ const cats={},quests=[],prog={},hd={},got={},ids=new Set(),pt=ptMap(html);let c=null,gr="",bad=0;
+ txt.split(/\r?\n/).forEach(l=>{let m;
+  if(m=l.match(/^##\s*(.+?)\s*\((\d+)\/(\d+)\)\s*$/)){c=slug(m[1]);cats[c]=m[1];hd[c]=[+m[2],+m[3]];got[c]=[0,0];return}
+  if(/^#\s/.test(l)){gr=l.replace(/^#\s+/,"").trim();return}
+  if(m=l.match(/^\s*\[( |x)\]\s*(.+?)(\s*\(fracassada\))?\s*$/i)){
+   if(!c){bad++;return}
+   let b=c.slice(0,4)+"-"+slug(m[2]),id=b,n=2;while(ids.has(id))id=b+"-"+n++;ids.add(id);
+   quests.push({id,ref:m[2],name:pt.get(m[2])||m[2],cat:c,group:gr,main:cats[c]=="Principais",missable:null,src:[]});
+   got[c][1]++;if(m[3])prog[id]=2;else if(m[1]!=" "){prog[id]=1;got[c][0]++}return}
+  if(/^\s*\[/.test(l))bad++});
+ const diff=Object.keys(hd).filter(k=>hd[k][0]!=got[k][0]||hd[k][1]!=got[k][1]).map(k=>cats[k]+": arquivo "+hd[k].join("/")+", lido "+got[k].join("/"));
+ const base={format:"jl-base",version:1,game:{id:"witcher3",title:"The Witcher 3: Wild Hunt",cover:"",sources:["Lista do checklist antigo (game-checklists.com e outras fontes)"],limits:"Base migrada como estava no checklist antigo; não foi revalidada nem pesquisada de novo."},cats,quests};
+ return{base,prog,diff,bad,ptN:quests.filter(q=>q.name!=q.ref).length}}
+/*ENDCORE*/
+
+const K="jl:v1";let S={games:{},progress:{},covers:{}},locked=false,last="";
+const V={q:"",f:"",o:"az",g:null,gq:"",c:"",s:""};
+const warn=m=>{const e=document.getElementById("msg");if(!e.textContent.includes(m))e.textContent+=(e.textContent?" ":"")+m;e.style.display="block"};
+try{const r=localStorage.getItem(K);if(r)S=JSON.parse(r);S.covers=S.covers||{};localStorage.setItem("jl:t","1");if(localStorage.getItem("jl:t")!=="1")throw new Error("a gravação não persistiu");localStorage.removeItem("jl:t");if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
+catch(e){locked=true;warn("Não consegui ler o armazenamento local ("+e.message+"). Para não sobrescrever nada, o salvamento está desligado nesta sessão.")}
+function status(){document.getElementById("st").textContent=(locked?"Salvamento DESLIGADO. ":"Salvamento automático neste navegador"+(last?" · último às "+last:"")+". ")+"Endereço: "+(location.protocol=="file:"?"arquivo local":location.host)+" · jogos: "+Object.keys(S.games).length}
+function save(){if(locked)return;try{const j=JSON.stringify(S);localStorage.setItem(K,j);if(localStorage.getItem(K)!==j)throw new Error("a verificação de leitura falhou");last=new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});status()}catch(e){warn("Não foi possível salvar ("+e.message+"). Exporte um backup agora.")}}
+if(location.protocol=="file:")warn("Você abriu o app como arquivo local. Alguns navegadores (e o visualizador de arquivos do celular) não mantêm dados assim; se o progresso sumir ao reabrir, hospede o site ou use o Backup completo.");
+function dl(name,o){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:"application/json"}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[-:T]/g,"");
+const backup=()=>dl("backup-biblioteca-"+stamp()+".json",{format:"jl-backup",version:1,data:S});
+const h=(t,p,...c)=>{const e=document.createElement(t);for(const k in p||{})k in e?e[k]=p[k]:e.setAttribute(k,p[k]);e.append(...c.flat().filter(x=>x!=null&&x!==false));return e};
+const bar=p=>h("div",{className:"bar"},h("i",{style:"width:"+p+"%"}));
+const REQ=t=>`Pesquise o jogo "${t}" em wikis especializadas, guias detalhados e fontes oficiais, comparando fontes complementares. Só me pergunte algo se houver ambiguidade relevante de edição/DLC que a pesquisa não resolva.
+Catalogue TODAS as missões únicas encontráveis: campanha principal, secundárias, missões de personagens/facções, histórias opcionais, contratos e atividades estruturadas como missão, cadeias narrativas e missões de expansões narrativas. NÃO inclua troféus, colecionáveis sem estrutura de missão, equipamentos, objetivos internos de missões já listadas nem atividades genéricas.
+Regras: não invente missões nem fontes; use nomes oficiais em pt-BR quando existirem; sem duplicatas; "main":true somente na campanha principal; em "missable" coloque um aviso curto, sem spoiler, nas missões perdíveis ou bloqueáveis por escolhas; investigue por que as fontes divergem nos totais e registre em "limits" o que não pôde ser confirmado; não apresente lista parcial como completa.
+Responda SOMENTE com JSON válido neste formato (ids estáveis, únicos e em minúsculas, ex. "main-bloody-baron"):
+{"format":"jl-base","version":1,"game":{"id":"slug-do-jogo","title":"Nome","cover":"https://... (opcional)","sources":["..."],"limits":"..."},"cats":{"main":"Principais","side":"Secundárias"},"quests":[{"id":"main-exemplo","ref":"Nome original","name":"Nome em português","cat":"main","group":"Ato ou região","main":true,"missable":null,"src":[]}]}`;
+
+function dlg(t,...c){const o=h("div",{className:"modal"}),x=()=>o.remove();o.append(h("div",{className:"mb"},h("div",{className:"row"},h("h2",null,t),h("button",{textContent:"Fechar",onclick:x})),...c));document.body.append(o);return x}
+function analyze(o){const f=o&&o.format;
+ if(f=="jl-base"){const e=validBase(o);if(e.length)return{err:e};
+  const id=o.game.id,old=S.games[id],n=o.quests.length,m=o.quests.filter(q=>q.main).length;
+  if(!old)return{lines:[`Novo jogo: ${o.game.title} — ${n} missões únicas (${m} da campanha principal).`,"Os outros jogos não serão alterados."],apply(){S.games[id]=o;S.progress[id]={}}};
+  const oi=new Set(old.quests.map(q=>q.id)),ni=new Set(o.quests.map(q=>q.id)),rm={},cnt={},map={};
+  old.quests.forEach(q=>{const k=norm(q.ref||q.name);cnt[k]=(cnt[k]||0)+1;rm[k]=q.id});
+  o.quests.forEach(q=>{if(!oi.has(q.id)){const k=norm(q.ref||q.name);if(cnt[k]==1)map[q.id]=rm[k]}});
+  const add=o.quests.filter(q=>!oi.has(q.id)&&!map[q.id]).length,gone=[...oi].filter(i=>!ni.has(i)&&!Object.values(map).includes(i)).length;
+  return{lines:[`Atualizar a base de ${old.game.title}: estados preservados pelo ID estável.`,`${o.quests.length-add-Object.keys(map).length} missões mantidas, ${Object.keys(map).length} reassociadas pelo nome original (estado copiado para o novo ID), ${add} novas (entram como pendentes).`,`${gone} missões da base antiga não aparecem na nova: seus estados continuam guardados, mas não contam nos percentuais.`],apply(){S.games[id]=o;const p=S.progress[id]||(S.progress[id]={});for(const k in map)if(p[map[k]]&&!p[k])p[k]=p[map[k]]}}}
+ if(f=="jl-progress"){const g=S.games[o.gameId];if(!g||!o.states||typeof o.states!="object")return{err:["O jogo "+o.gameId+" não está na biblioteca, ou o arquivo é inválido."]};
+  const ids=new Set(g.quests.map(q=>q.id)),cur=S.progress[o.gameId]||{},ks=Object.keys(o.states),ok=ks.filter(k=>ids.has(k)&&(o.states[k]==1||o.states[k]==2));
+  return{lines:[`Progresso de ${g.game.title}: ${ok.length} estados reconhecidos (${ok.filter(k=>cur[k]!=o.states[k]).length} diferem do atual), ${ks.length-ok.length} IDs desconhecidos ignorados.`,"Mesclagem: só aplica concluídas/perdidas do arquivo; o que não está nele permanece como está."],apply(){const p=S.progress[o.gameId]||(S.progress[o.gameId]={});ok.forEach(k=>p[k]=o.states[k])}}}
+ if(f=="jl-backup"){const d=o.data;if(!d||!d.games||typeof d.games!="object"||!d.progress)return{err:["Backup inválido."]};
+  for(const k in d.games){const e=validBase(d.games[k]);if(e.length||d.games[k].game.id!=k)return{err:["Jogo "+k+" inválido no backup: "+(e[0]||"id divergente")]}}
+  return{lines:[`Restaurar backup com ${Object.keys(d.games).length} jogo(s).`,"Isto SUBSTITUI toda a biblioteca atual (um backup do estado atual é baixado antes)."],apply(){S=d;S.covers=S.covers||{}}}}
+ return{err:["Formato não reconhecido (esperado jl-base, jl-progress ou jl-backup)."]}}
+const jsonA=t=>{try{return analyze(JSON.parse(t))}catch(e){return{err:["Não consegui ler o texto como JSON ("+e.message+"). Nada foi alterado."]}}};
+function imp(title,pre=[],fn=jsonA,nt){const ta=h("textarea",{placeholder:"Cole aqui o conteúdo (ou carregue um arquivo abaixo)"}),f=h("input",{type:"file",accept:".json,.txt"}),out=h("div"),
+ go=h("button",{className:"p",textContent:"Analisar",onclick:async()=>{out.replaceChildren();let a;try{a=await fn(ta.value)}catch(e){a={err:[e.message]}}
+  if(a.err)return out.append(h("ul",{className:"bad"},a.err.map(x=>h("li",null,x))));
+  out.append(h("ul",null,a.lines.map(x=>h("li",null,x))),h("button",{className:"p",textContent:"Confirmar e aplicar",onclick:()=>{if(Object.keys(S.games).length)backup();a.apply();save();close();render()}}))}});
+ f.onchange=async()=>{if(f.files[0])ta.value=await f.files[0].text()};
+ const close=dlg(title,...pre,...(nt?[]:[ta,f]),go,out)}
+function legacy(t,html){if(S.games.witcher3)return{err:["O Witcher 3 já está na biblioteca; a migração só roda uma vez. Para aplicar outro progresso, use Importar."]};
+ const r=legacyBase(t,html),n=r.base.quests.length;if(!n)return{err:["Nenhuma missão encontrada. Cole o texto exportado pela página antiga."]};
+ if(r.diff.length||r.bad)return{err:["Conferência falhou, nada foi gravado: "+r.diff.join("; ")+(r.bad?` ${r.bad} linhas não interpretadas.`:"")]};
+ const v=Object.values(r.prog);
+ return{lines:[`${n} missões lidas em ${Object.keys(r.base.cats).length} categorias. Concluídas: ${v.filter(x=>x==1).length}. Perdidas (marcadas "fracassada"): ${v.filter(x=>x==2).length}.`,"Conferência: as contagens por categoria batem com os totais do arquivo.",`Nomes em português recuperados: ${r.ptN} de ${n}.`,"Missões não marcadas ficam pendentes. O checklist antigo não é alterado."],apply(){S.games.witcher3=r.base;S.progress.witcher3=r.prog}}}
+function mig(){const hf=h("input",{type:"file",accept:".html,.htm"});
+ imp("Migrar o checklist do Witcher 3",[h("p",{className:"mu"},"1) Na página antiga, clique em Exportar progresso e cole o texto abaixo (ou carregue o .txt). 2) Escolha também o HTML antigo para trazer os nomes em português (ele é só lido como texto, nada é executado). Nada vai para a internet."),hf],async t=>legacy(t,hf.files[0]?await hf.files[0].text():""))}
+function add(){const t=h("input",{placeholder:"Nome do jogo (com edição/plataforma, se importar)"}),req=h("textarea",{readOnly:true,placeholder:"A solicitação aparecerá aqui."});
+ t.oninput=()=>req.value=t.value.trim()?REQ(t.value.trim()):"";
+ imp("Adicionar jogo",[h("p",{className:"mu"},"Este fluxo NÃO pesquisa sozinho: 1) digite o título, 2) copie a solicitação e cole no assistente de IA, 3) cole o JSON recebido abaixo e confira a prévia."),t,req,h("button",{textContent:"Copiar solicitação",onclick:()=>{req.select();if(navigator.clipboard)navigator.clipboard.writeText(req.value).catch(()=>{})}})])}
+function cover(g){const id=g.game.id,u=h("input",{placeholder:"ou cole o link (https://...) de uma imagem"}),f=h("input",{type:"file",accept:"image/*"}),
+ ok=v=>{if(v)S.covers[id]=v;else delete S.covers[id];save();x();render()};
+ const x=dlg("Capa de "+g.game.title,h("p",{className:"mu"},"Escolha uma imagem do aparelho (fica guardada no app e funciona offline) ou use um link."),f,u,
+  h("div",{className:"row"},h("button",{className:"p",textContent:"Usar link",onclick:()=>{const v=u.value.trim();/^https?:\/\//.test(v)?ok(v):warn("Cole um link que comece com https://")}}),h("button",{textContent:"Remover capa",onclick:()=>ok("")})));
+ f.onchange=()=>{const fl=f.files[0];if(!fl)return;const im=new Image(),url=URL.createObjectURL(fl);
+  im.onload=()=>{const c=document.createElement("canvas"),r=Math.min(1,360/im.width);c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext("2d").drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(url);ok(c.toDataURL("image/jpeg",.8))};
+  im.onerror=()=>warn("Não consegui ler essa imagem.");im.src=url}}
+function names(g){const hf=h("input",{type:"file",accept:".html,.htm"});
+ imp("Nomes em português — "+g.game.title,[h("p",{className:"mu"},"Escolha o arquivo HTML antigo do checklist (ele só é lido como texto). Muda apenas o nome exibido; o progresso não é tocado."),hf],async()=>{
+  if(!hf.files[0])return{err:["Escolha primeiro o arquivo HTML antigo."]};
+  const m=ptMap(await hf.files[0].text()),qs=g.quests.filter(q=>q.ref&&m.has(q.ref)&&m.get(q.ref)!=q.name);
+  if(!qs.length)return{err:["Nenhum nome novo a aplicar. Confira se o arquivo é o HTML antigo do checklist."]};
+  return{lines:[`${qs.length} de ${g.quests.length} nomes serão trocados para português.`,`Missões sem tradução encontrada: ${g.quests.filter(q=>!m.has(q.ref)).length}.`],apply(){const t={};qs.forEach(q=>t[q.id]=m.get(q.ref));g.quests.forEach(q=>{if(t[q.id])q.name=t[q.id]})}}},1)}
+function rem(g){if(confirm(`Remover "${g.game.title}" e o progresso dele? Um backup completo será baixado antes.`)){backup();delete S.games[g.game.id];delete S.progress[g.game.id];delete S.covers[g.game.id];save();render()}}
+
+function lib(){const L=Object.values(S.games).map(g=>({g,s:stats(g,S.progress[g.game.id]||{})})).filter(x=>norm(x.g.game.title).includes(norm(V.q))&&(!V.f||(V.f=="d")==(x.s.main[1]>0&&x.s.main[0]==x.s.main[1])));
+ L.sort((a,b)=>V.o=="p"?pct(b.s.all[0],b.s.all[1])-pct(a.s.all[0],a.s.all[1]):a.g.game.title.localeCompare(b.g.game.title,"pt"));
+ const card=({g,s})=>{const t=g.game.title,id=g.game.id,cv=h("div",{className:"cv"},h("span",null,t[0]));
+  const cu=S.covers[id]||g.game.cover||"";if(/^(https?:\/\/|data:image\/(jpeg|png|webp);base64,)/.test(cu)){const im=h("img",{alt:"",src:cu,loading:"lazy"});im.onerror=()=>im.remove();cv.append(im)}
+  return h("div",{className:"card"},cv,h("div",{className:"cb"},h("h2",null,t),
+   h("div",{className:"mu"},`Campanha: ${pct(s.main[0],s.main[1])}% (${s.main[0]}/${s.main[1]})`),bar(pct(s.main[0],s.main[1])),
+   h("div",{className:"mu"},`Todas: ${pct(s.all[0],s.all[1])}% (${s.all[0]}/${s.all[1]})`),bar(pct(s.all[0],s.all[1])),
+   h("div",{className:"mu"},`${s.all[0]} concluídas · ${s.all[1]-s.all[0]-s.all[2]} restantes · ${s.all[2]} perdidas`),
+   h("div",{className:"row"},h("button",{className:"p",textContent:"Abrir",onclick:()=>{V.g=id;V.gq=V.c=V.s="";render()}}),
+    h("button",{textContent:"Base",title:"Exportar base de missões",onclick:()=>dl(id+".base.json",g)}),
+    h("button",{textContent:"Progresso",title:"Exportar progresso",onclick:()=>dl(id+".progresso.json",{format:"jl-progress",version:1,gameId:id,exportedAt:new Date().toISOString(),states:S.progress[id]||{}})}),
+    h("button",{textContent:"Atualizar",title:"Atualizar a base",onclick:()=>imp("Atualizar base de "+t,[h("p",{className:"mu"},"Cole um JSON jl-base com o mesmo game.id.")])}),
+    h("button",{textContent:"Capa",onclick:()=>cover(g)}),id=="witcher3"?h("button",{textContent:"Nomes PT",title:"Nomes em português",onclick:()=>names(g)}):null,h("button",{className:"d",textContent:"Remover",onclick:()=>rem(g)}))))};
+ const sel=(o,k)=>h("select",{onchange:e=>{V[k]=e.target.value;render()}},...o.map(([v,x])=>h("option",{value:v,textContent:x,selected:V[k]==v})));
+ return h("div",null,h("h1",null,"Biblioteca de checklists"),h("p",{className:"mu"},"O progresso fica salvo automaticamente neste navegador e dispositivo (não sincroniza sozinho). Exporte backups para guardar ou levar para outro lugar."),
+  h("div",{className:"row"},h("button",{className:"p",textContent:"+ Adicionar jogo",onclick:add}),h("button",{textContent:"Importar arquivo",onclick:()=>imp("Importar base, progresso ou backup")}),h("button",{textContent:"Backup completo",onclick:backup}),S.games.witcher3?null:h("button",{textContent:"Migrar Witcher 3",onclick:mig})),
+  Object.keys(S.games).length?h("div",null,h("div",{className:"row"},h("input",{type:"search",placeholder:"Buscar jogo",value:V.q,oninput:e=>{V.q=e.target.value;render();const i=document.querySelector("input[type=search]");i.focus();i.setSelectionRange(99,99)}}),sel([["az","A–Z"],["p","Maior progresso"]],"o"),sel([["","Todos"],["p","Em andamento"],["d","Campanha concluída"]],"f")),
+   h("div",{className:"grid"},L.map(card)),L.length?null:h("p",{className:"mu"},"Nenhum jogo encontrado.")):
+  h("div",{className:"card cb"},h("h2",null,"Sua biblioteca está vazia"),h("p",null,"Use “Migrar Witcher 3” para trazer seu checklist atual, “Adicionar jogo” para um título novo ou “Importar arquivo” para restaurar um backup.")))}
+
+function game(){const g=S.games[V.g],id=g.game.id,pr=S.progress[id]||(S.progress[id]={}),head=h("div",{className:"card cb"}),list=h("div");
+ const upd=()=>{const s=stats(g,pr);head.replaceChildren(h("h1",null,g.game.title),h("div",null,`Campanha principal: ${pct(s.main[0],s.main[1])}% (${s.main[0]}/${s.main[1]})`),bar(pct(s.main[0],s.main[1])),
+  h("div",null,`Todas as missões: ${pct(s.all[0],s.all[1])}% — ${s.all[0]} concluídas, ${s.all[1]-s.all[0]-s.all[2]} restantes, ${s.all[2]} perdidas`),bar(pct(s.all[0],s.all[1])),
+  ...Object.keys(g.cats).map(k=>{const c=s.cat[k]||[0,0,0];return h("div",{className:"mu"},`${g.cats[k]}: ${c[0]}/${c[1]}`+(c[2]?` (${c[2]} perdidas)`:""))}),
+  g.game.limits?h("div",{className:"mu"},"Limitações: "+g.game.limits):null)};
+ const row=q=>{const li=h("div",{className:"q"}),cb=h("input",{type:"checkbox"}),lost=h("button",{title:"Marcar como perdida/fracassada"});
+  const paint=()=>{const s=pr[q.id]||0;li.className="q"+(s==1?" ok":s==2?" lost":"");cb.checked=s==1;lost.textContent=s==2?"desfazer":"perdida"};
+  cb.onchange=()=>{cb.checked?pr[q.id]=1:delete pr[q.id];save();paint();upd()};
+  lost.onclick=()=>{pr[q.id]==2?delete pr[q.id]:pr[q.id]=2;save();paint();upd()};
+  paint();li.append(h("label",null,cb,h("span",{className:"n"},q.name),q.missable?h("small",{className:"mu"}," ⚠ "+q.missable):null),lost);return li};
+ const draw=()=>{list.replaceChildren();const m=new Map();
+  g.quests.forEach(q=>{const s=pr[q.id]||0;if(V.c&&q.cat!=V.c||V.s!==""&&String(s)!=V.s||V.gq&&!norm(q.name+" "+(q.ref||"")).includes(norm(V.gq)))return;
+   const k=g.cats[q.cat]+(q.group?" › "+q.group:"");(m.get(k)||m.set(k,[]).get(k)).push(q)});
+  m.forEach((qs,k)=>list.append(h("details",{open:!!(V.gq||V.c||V.s!=="")||qs.some(q=>!pr[q.id])},h("summary",null,k,h("span",{className:"mu"},qs.filter(q=>pr[q.id]==1).length+"/"+qs.length)),...qs.map(row))));
+  if(!m.size)list.append(h("p",{className:"mu"},"Nenhuma missão encontrada."))};
+ const sel=(o,k)=>h("select",{onchange:e=>{V[k]=e.target.value;draw()}},...o.map(([v,x])=>h("option",{value:v,textContent:x,selected:V[k]==v})));
+ const all=o=>list.querySelectorAll("details").forEach(d=>d.open=o);
+ upd();draw();
+ return h("div",null,h("div",{className:"row"},h("button",{textContent:"← Biblioteca",onclick:()=>{V.g=null;render()}})),head,
+  h("div",{className:"row"},h("input",{type:"search",placeholder:"Buscar missão",value:V.gq,oninput:e=>{V.gq=e.target.value;draw()}}),sel([["","Todas as categorias"],...Object.keys(g.cats).map(k=>[k,g.cats[k]])],"c"),sel([["","Todos os estados"],["0","Pendentes"],["1","Concluídas"],["2","Perdidas"]],"s"),h("button",{textContent:"Expandir",onclick:()=>all(true)}),h("button",{textContent:"Recolher",onclick:()=>all(false)})),list)}
+function render(){document.getElementById("app").replaceChildren(V.g&&S.games[V.g]?game():lib());status()}
+render();
+</script></body></html>
